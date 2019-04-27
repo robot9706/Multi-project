@@ -1,0 +1,56 @@
+@font-face {
+    font-family: 'Minecraftia';
+    src: url('Minecraftia-Regular.woff2') format('woff2'),
+        url('Minecraftia-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+html {
+    height: 100%;
+    font-family: "Minecraftia";
+}
+
+body {
+    background-color: #333333;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
+#page_container {
+    display: flex;
+    height: 100%;
+    justify-content: center;
+}
+
+#page_container_vertical {
+    display: flex;
+    height: 100%;
+    justify-content: center;
+    flex-flow: column;
+}
+
+#game_canvas {
+    background-color: #333333;
+}
+
+#text_container {
+    display: flex;
+    width: 100%;
+    color: white;
+}
+
+.text_div {
+    width: 50%;
+}
+
+#text_nextlvl {
+    visibility: hidden;
+}
