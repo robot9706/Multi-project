@@ -3,6 +3,7 @@ var ctx;
 var lastTime;
 
 function start() {
+    //DOM elemek betöltése
     canvas = document.getElementById('game_canvas');
     ctx = canvas.getContext('2d');
 
@@ -10,27 +11,32 @@ function start() {
     mapWidth = canvas.width / TILE_SIZE;
     mapHeight = canvas.height / TILE_SIZE;
 
+    //Különféle részek betöltése
     soundDoInit();
     inputInit();
     gameInit();
     toplistInit();
 
+    //Rajzolás elindítása
     window.requestAnimationFrame(frame);
 }
 
 function frame(t) {
+    //Eltelt idő számítás animációkhoz
     if (lastTime == undefined) {
         lastTime = t;
     }
     var delta = (t - lastTime) / 1000.0;
     lastTime = t;
 
+    //Következő rajzolás indítése
     window.requestAnimationFrame(frame);
 
     //Canvas ürítése
     ctx.fillStyle = "#333333";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    //Pálya és játékos rajzolás
     mapDraw(delta);
     playerDraw(delta);
 }
@@ -57,6 +63,7 @@ function inputInit() {
 function inputKeyDown(e) {
     var name = inputMapping[e.keyCode];
 
+    //Ha nincs neve a gombnak akkor külön kell kezelni
     if (name == undefined) {
         if (e.keyCode == 82) { //'R' gomb
             gameInit();
@@ -90,11 +97,10 @@ function inputKeyUp(e) {
 var gamePoints = 0;
 var gamePointsAdd = 0;
 
-var levelIndex = 0;
+var levelIndex = 6;
 
 var levelDoTime = false;
 var levelTime = 0;
-var levelSteps = 0;
 
 var levelFinished = false;
 var playerDied = false;
@@ -102,23 +108,41 @@ var playerDied = false;
 function gameInit() {
     document.getElementById("text_nextlvl").style.visibility = "hidden";
 
+    //Számlálók és egyéb változók ürítése
     playerDied = false;
     levelFinished = false;
 
     levelDoTime = false;
     levelTime = 0;
-    levelSteps = 0;
     gamePointsAdd = 0;
 
+    //Pálya lemásolása (így újra lehet játszani a pályát mert a belseje módosul a játékkal)
     map = jQuery.extend(true, {}, maps[levelIndex]);
 
+    //Elemek sorba rakása típus alapján így a doboz (0) a lézer felett lesz (1) és nem fog furán kinézni
+    map.entities.sort(gameEntitySort);
+
+    //Pálya betöltése
     mapInit();
 
     //Pálya szöveg
     document.getElementById('text_level').innerHTML = (levelIndex + 1);
 
+    //Szövegek firssítése
     pointsUpdateText();
     mapUpdateTime();
+}
+
+function gameEntitySort(a, b) {
+    if (a.type < b.type){
+      return 1;
+    }
+
+    if (a.type > b.type){
+      return -1;
+    }
+
+    return 0;
 }
 
 function gameNew() {
@@ -199,10 +223,11 @@ function mapDraw(t) {
         }
     }
 
-    //Vége négyzet
+    //Vége négyzet + animáció
     var finishPos = map.finish;
     mapFinishAnimationTime += t;
 
+    //Sin használatával pulzáló animáció
     var finishAnim = (mapFinishAnimationTime / MAP_FINISH_ANIMATION_TIME) % 1.0;
     finishAnim = Math.sin(finishAnim * Math.PI);
     var finishColor = parseInt(finishAnim * 255);
@@ -237,11 +262,17 @@ function mapFormatTime(secs) {
 }
 
 function mapFindEntity(atX, atY) {
+    //Elemek keresése egy négyzet X és Y koordinátán
+
     var entityList = map.entities;
     for (var i = 0; i < entityList.length; i++){
         var entity = entityList[i];
 
-        if (entity.x == atX && entity.y == atY) {
+        if (entity.anim != undefined) { //Ha van animáció akkor a cél négyzetet kell nézni
+            if (entity.anim.to.x == atX && entity.anim.to.y == atY) {
+                return entity;
+            }
+        } else if (entity.x == atX && entity.y == atY) {
             return entity;
         }
     }
@@ -250,6 +281,7 @@ function mapFindEntity(atX, atY) {
 }
 
 function mapIsTileCollider(tx, ty, lazerMode) {
+    //Egy négyzettel X Y helyen van ütközés?
     var tilemap = map.tiles;
     var row = tilemap[ty];
     if (row == undefined) {
@@ -265,24 +297,27 @@ function mapIsTileCollider(tx, ty, lazerMode) {
 }
 
 function mapCollideAt(tx, ty, lazerMode) {
+    //Van ütközés négyzettel?
     if (mapIsTileCollider(tx, ty, lazerMode)) {
         return true;
     }
 
+    //Van egyéb elem az adott négyzeten?
     return (mapFindEntity(tx, ty) != null);
 }
 
 //Entities
 function entityCanMove(entity, dir) {
-    if (entity.type != 0) {
+    if (entity.type != 0) { //Csak dobozok mozgathatóak
         return false;
     }
 
+    //Tud mozogni az elem az adott irányba?
     return !mapCollideAt(entity.x + dir.x, entity.y + dir.y);
 }
 
 function entityDoMove(entity, dir) {
-    entity.anim = animCreate(entity.x, entity.y, entity.x + dir.x, entity.y + dir.y, PLAYER_MOVE_TIME - 0.001);
+    entity.anim = animCreate(entity.x, entity.y, entity.x + dir.x, entity.y + dir.y, PLAYER_MOVE_TIME - 0.01);
 
     soundPlayPush();
 }
@@ -291,6 +326,7 @@ function entityDraw(entity, t) {
     var drawX = entity.x;
     var drawY = entity.y;
 
+    //Ha van animációja az elemnek frissíteni kell azt
     if (entity.anim != undefined) {
         var animResult = animUpdate(t, entity.anim);
         if (animResult === true) {
@@ -328,8 +364,9 @@ function entityDraw(entity, t) {
     }
 }
 
-function entityDrawlazer(tx, ty, lazerX, lazerY) {
-    for (var step = 0; step < 10; step++) {
+function entityDrawlazer(tx, ty, lazerX, lazerY, checkTiles) {
+    //A lézer max távolságig megvizsgálja a négyzeteket és kirajzolja a lézer elemeket
+    for (var step = 0; step < Math.max(mapWidth, mapHeight); step++) {
         var checkX = tx + lazerX * step;
         var checkY = ty + lazerY * step;
 
@@ -337,13 +374,17 @@ function entityDrawlazer(tx, ty, lazerX, lazerY) {
             break;
         }
 
-        mapLazerTiles.push({
-            x: checkX,
-            y: checkY
-        })
+        //Csak az érdekel, hogy egy négyzeten van lézer vagy nincs?
+        if (checkTiles === true) {
+            mapLazerTiles.push({
+                x: checkX,
+                y: checkY
+            });
+            continue;
+        }
 
         ctx.fillStyle = "#ff0000";
-        if (step == 0) {
+        if (step == 0) { //Az első lézer elem más mert ott indul ki
             if (lazerX != 0) {
                 ctx.fillRect(checkX * TILE_SIZE + (TILE_SIZE / 2) * (lazerX > 0 ? 1 : 0), checkY * TILE_SIZE + (TILE_SIZE / 2) - 5, TILE_SIZE / 2, 10);
             } else {
@@ -388,7 +429,7 @@ function tileDraw(type, tx, ty) {
 }
 
 function tileIsCollider(type, lazerMode) {
-    if (lazerMode) {
+    if (lazerMode) { //A lézer nem ütközik a vékony falakba
         if (type == 2 || type == 3) {
             return false;
         }
@@ -413,6 +454,7 @@ function playerDraw(t) {
     if (playerMove == undefined && !levelFinished) {
         var playSound = false;
 
+        //Ha gomb le van nyomva és arra lehet mozogni, akkor mozgás animáció készítésével mozog a játékos
         if (input.up && !mapIsTileCollider(playerPosition.x, playerPosition.y - 1)) {
             playerMove = animCreate(playerPosition.x, playerPosition.y, playerPosition.x, playerPosition.y - 1, PLAYER_MOVE_TIME);
         } else if (input.down && !mapIsTileCollider(playerPosition.x, playerPosition.y + 1)) {
@@ -423,6 +465,7 @@ function playerDraw(t) {
             playerMove = animCreate(playerPosition.x, playerPosition.y, playerPosition.x + 1, playerPosition.y, PLAYER_MOVE_TIME);
         }
 
+        //Ha van mozgás esemény meg kell nézni hogy dobozt lehet-e mozgatni
         if (playerMove != undefined) {
             playSound = true;
 
@@ -469,6 +512,17 @@ function playerDraw(t) {
 }
 
 function playerCheckLazer() {
+    //Lézer lista építése
+    mapLazerTiles = [ ];
+    for (var i = 0; i < map.entities.length; i++) {
+        var entity = map.entities[i];
+
+        if (entity.type == 1) {
+            entityDrawlazer(entity.x, entity.y, entity.lazerDir.x, entity.lazerDir.y, true);
+        }
+    }
+
+    //Ellenőrzés
     for (var x = 0; x < mapLazerTiles.length; x++) {
         if (mapLazerTiles[x].x == playerPosition.x && mapLazerTiles[x].y == playerPosition.y) {
             levelFinished = true;
@@ -501,11 +555,12 @@ function animUpdate(time, anim) {
     var moveProgress = anim.time / anim.maxTime;
 
     if (moveProgress >= 1) {
-        return true;
+        return true; //Ha vége az animációnak true-val visszatérés
     } else {
         var difX = anim.to.x - anim.from.x;
         var difY = anim.to.y - anim.from.y;
 
+        //Ha nincs vége akkor az animáció aktuális helyével tér vissza
         return {
             x: anim.from.x + difX * moveProgress,
             y: anim.from.y + difY * moveProgress
@@ -521,8 +576,6 @@ function animDir(anim) {
 }
 
 function eventPlayerMoved(toX, toY) {
-    levelSteps++;
-
     if (toX == map.finish.x && toY == map.finish.y) {
         levelFinished = true;
         pointsCalculate();
@@ -537,9 +590,13 @@ function eventPlayerMoved(toX, toY) {
 function pointsCalculate() {
     var targetTime = map.score.time;
 
-    if (levelTime <= targetTime) {
+    if (levelTime <= targetTime) { //Ha a max időn belül van akkor max pont
         gamePointsAdd = 100;
     } else {
+        //Ha nem akkor a pontszám úgy csökken hogy:
+        //A cél idő: 100pont
+        //A cél idő kétszerese: 1 pont
+        //Ezek között lineárisan csökken
         var left = levelTime - targetTime;
 
         left /= targetTime;
@@ -666,15 +723,16 @@ function toplistSubmit() {
     } else {
         toplistVisible(false, false);
 
+        //Új toplista elem
         toplist.push({
             name: name.value,
             points: gamePoints
         });
 
+        //Sorbarakás
         toplist.sort(toplistCompare);
 
         toplistSave();
-
         toplistRefresh();
     }
 }
@@ -695,10 +753,12 @@ function toplistGetCookie() {
     var value = "; " + document.cookie;
     var parts = value.split("; tl=");
     if (parts.length == 2) return parts.pop().split(";").shift();
+
+    return undefined;
   }
 
-function toplistSetCookie(name,value) {
-    document.cookie = name + "=" + (value || "") + "; path=/";
+function toplistSetCookie(name, value) {
+    document.cookie = name + "=" + value + "; path=/";
 }
 
 function toplistLoad() {
