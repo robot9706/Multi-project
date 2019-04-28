@@ -92,6 +92,7 @@ var gamePointsAdd = 0;
 
 var levelIndex = 0;
 
+var levelDoTime = false;
 var levelTime = 0;
 var levelSteps = 0;
 
@@ -104,6 +105,7 @@ function gameInit() {
     playerDied = false;
     levelFinished = false;
 
+    levelDoTime = false;
     levelTime = 0;
     levelSteps = 0;
     gamePointsAdd = 0;
@@ -116,6 +118,7 @@ function gameInit() {
     document.getElementById('text_level').innerHTML = (levelIndex + 1);
 
     pointsUpdateText();
+    mapUpdateTime();
 }
 
 function gameNew() {
@@ -214,10 +217,14 @@ function mapDraw(t) {
     }
 
     //Idő számláló
-    if (!levelFinished) {
+    if (!levelFinished && levelDoTime) {
         levelTime += t;
-    }
 
+        mapUpdateTime();
+    }
+}
+
+function mapUpdateTime() {
     document.getElementById('text_time').innerHTML = mapFormatTime(levelTime) + " (" + mapFormatTime(map.score.time) + ")";
 }
 
@@ -310,6 +317,13 @@ function entityDraw(entity, t) {
             ctx.fillRect(drawX * TILE_SIZE + 10, drawY * TILE_SIZE + 10, TILE_SIZE - 20, TILE_SIZE - 20);
 
             entityDrawlazer(drawX, drawY, entity.lazerDir.x, entity.lazerDir.y);
+            break;
+        case 2: //Szöveg
+            ctx.font = "16px Minecraftia";
+            ctx.fillStyle = "#ffffff";
+
+            var width = ctx.measureText(entity.text).width;
+            ctx.fillText(entity.text, canvas.width / 2 - width / 2, drawY * TILE_SIZE + (TILE_SIZE / 2));
             break;
     }
 }
@@ -425,6 +439,10 @@ function playerDraw(t) {
         }
 
         if (playSound) {
+            if (!levelDoTime) {
+                levelDoTime = true;
+            }
+
             soundPlayWalk();
         }
     }
@@ -626,6 +644,8 @@ function toplistHide() {
 
 function toplistShow() {
     document.getElementById("toplist_container").style.display = "block";
+    document.getElementById("toplist_score").innerHTML = gamePoints;
+    document.getElementById("toplist_score_new").innerHTML = gamePoints;
 
     if (gamePoints > toplist[toplist.length - 1].score || toplist.length < 5) {
         toplistVisible(false, true);
