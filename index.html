@@ -10,6 +10,9 @@
         <script src="main.js"></script>
         <div id="page_container">
             <div id="page_container_vertical">
+                <div id="text_center">
+                    <p>Minden pálya max 100 pontot érhet, az időtől és a lépések számától függ!</p>
+                </div>
                 <div id="text_container">
                     <div class="text_div">
                         <p>Mozgatás: <b>Nyilak</b></p>
@@ -19,11 +22,36 @@
                     <div class="text_div">
                         <p>Pálya: <b><span id="text_level">?</span></b></p>
                         <p>Idő: <b><span id="text_time">00:00</span></b></p>
+                        <p>Pontok: <b><span id="text_point">0</span></b></p>
                     </div>
                 </div>
                 <canvas id="game_canvas" width="768" height="576">
                     Canvas nem támogatott! :(
                 </canvas>
+            </div>
+            <div id="toplist_container">
+                <p>Toplista</p>
+                <table id="toplist_table">
+                    <tr>
+                        <td>#1</td>
+                        <td>ÉN</td>
+                    </tr>
+                    <tr>
+                        <td>#2</td>
+                        <td>ASD</td>
+                    </tr>
+                </table>
+                <div id="toplist_no_high">
+                    <p>Pontszámod: <span id="toplist_score">?</span></p>
+                </div>
+                <div id="toplist_new_high">
+                    <p>Új rekord!</p>
+                    <input id="toplist_name" type="text" placeholder="Bajnoki neved?" />
+                    <input type="button" value="Mehet" onclick="toplistSubmit()" />
+                </div>
+                <div>
+                    <input type="button" value="Új játék" onclick="gameNew()" />
+                </div>
             </div>
         </div>
     </body>

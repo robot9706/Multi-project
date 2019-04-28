@@ -10,9 +10,10 @@ function start() {
     mapWidth = canvas.width / TILE_SIZE;
     mapHeight = canvas.height / TILE_SIZE;
 
+    soundDoInit();
     inputInit();
-
     gameInit();
+    toplistInit();
 
     window.requestAnimationFrame(frame);
 }
@@ -86,9 +87,14 @@ function inputKeyUp(e) {
 }
 
 //Játék
-var levelIndex = 6;
+var gamePoints = 0;
+var gamePointsAdd = 0;
+
+var levelIndex = 0;
 
 var levelTime = 0;
+var levelSteps = 0;
+
 var levelFinished = false;
 var playerDied = false;
 
@@ -97,7 +103,10 @@ function gameInit() {
 
     playerDied = false;
     levelFinished = false;
+
     levelTime = 0;
+    levelSteps = 0;
+    gamePointsAdd = 0;
 
     map = jQuery.extend(true, {}, maps[levelIndex]);
 
@@ -105,13 +114,35 @@ function gameInit() {
 
     //Pálya szöveg
     document.getElementById('text_level').innerHTML = (levelIndex + 1);
+
+    pointsUpdateText();
+}
+
+function gameNew() {
+    toplistHide();
+
+    levelIndex = 0;
+    gamePoints = 0;
+    gamePointsAdd = 0;
+
+    gameInit();
 }
 
 function gameNextMap() {
+    if (gamePointsAdd > 0) {
+        gamePoints += gamePointsAdd;
+
+        pointsUpdateText();
+
+        gamePointsAdd = 0;
+    }
+
     if (levelIndex + 1 < maps.length) {
         levelIndex++;
 
         gameInit();
+    } else {
+        toplistShow();
     }
 }
 
@@ -187,11 +218,15 @@ function mapDraw(t) {
         levelTime += t;
     }
 
-    var timeInt = parseInt(levelTime);
+    document.getElementById('text_time').innerHTML = mapFormatTime(levelTime) + " (" + mapFormatTime(map.score.time) + ")";
+}
+
+function mapFormatTime(secs) {
+    var timeInt = parseInt(secs);
     var timeSec = timeInt % 60;
     var timeMin = Math.floor(timeInt / 60);
 
-    document.getElementById('text_time').innerHTML = (timeMin < 10 ? "0" : "") + timeMin + ":" + (timeSec < 10 ? "0" : "") + timeSec;
+    return (timeMin < 10 ? "0" : "") + timeMin + ":" + (timeSec < 10 ? "0" : "") + timeSec;
 }
 
 function mapFindEntity(atX, atY) {
@@ -241,6 +276,8 @@ function entityCanMove(entity, dir) {
 
 function entityDoMove(entity, dir) {
     entity.anim = animCreate(entity.x, entity.y, entity.x + dir.x, entity.y + dir.y, PLAYER_MOVE_TIME - 0.001);
+
+    soundPlayPush();
 }
 
 function entityDraw(entity, t) {
@@ -360,6 +397,8 @@ function playerDraw(t) {
 
     //Bemenet
     if (playerMove == undefined && !levelFinished) {
+        var playSound = false;
+
         if (input.up && !mapIsTileCollider(playerPosition.x, playerPosition.y - 1)) {
             playerMove = animCreate(playerPosition.x, playerPosition.y, playerPosition.x, playerPosition.y - 1, PLAYER_MOVE_TIME);
         } else if (input.down && !mapIsTileCollider(playerPosition.x, playerPosition.y + 1)) {
@@ -371,6 +410,8 @@ function playerDraw(t) {
         }
 
         if (playerMove != undefined) {
+            playSound = true;
+
             var entity = mapFindEntity(playerMove.to.x, playerMove.to.y);
             if (entity != undefined) {
                 var dir = animDir(playerMove);
@@ -378,8 +419,13 @@ function playerDraw(t) {
                     entityDoMove(entity, dir);
                 } else {
                     playerMove = undefined;
+                    playSound = false;
                 }
             }
+        }
+
+        if (playSound) {
+            soundPlayWalk();
         }
     }
 
@@ -409,6 +455,8 @@ function playerCheckLazer() {
         if (mapLazerTiles[x].x == playerPosition.x && mapLazerTiles[x].y == playerPosition.y) {
             levelFinished = true;
             playerDied = true;
+
+            soundPlayDead();
         }
     }
 }
@@ -455,11 +503,195 @@ function animDir(anim) {
 }
 
 function eventPlayerMoved(toX, toY) {
+    levelSteps++;
+
     if (toX == map.finish.x && toY == map.finish.y) {
         levelFinished = true;
+        pointsCalculate();
 
         document.getElementById("text_nextlvl").style.visibility = "visible";
     } else {
         playerCheckLazer();
     }
+}
+
+//Pontszámítés
+function pointsCalculate() {
+    var targetTime = map.score.time;
+
+    if (levelTime <= targetTime) {
+        gamePointsAdd = 100;
+    } else {
+        var left = levelTime - targetTime;
+
+        left /= targetTime;
+        left = 1.0 - left;
+
+        if (left < 0) left = 0;
+        if (left > 1) left = 1;
+
+        var pt = 100 * left;
+        if (pt < 1) pt = 1;
+
+        gamePointsAdd = parseInt(Math.ceil(pt));
+    }
+
+    pointsUpdateText();
+}
+
+function pointsUpdateText() {
+    document.getElementById("text_point").innerHTML = gamePoints + (gamePointsAdd > 0 ? " (+" + gamePointsAdd + ")" : "");
+}
+
+//Hangok
+var soundDead;
+var soundWalk;
+var soundPush;
+
+function soundDoInit() {
+    soundWalk = new Audio("walk.wav");
+    soundWalk.volume = 0.5;
+
+    soundDead = new Audio("dead.wav");
+
+    soundPush = new Audio("push.wav");
+    soundPush.volume = 0.15;
+}
+
+function soundPlayWalk() {
+    soundWalk.pause();
+    soundWalk.currentTime = 0;
+    soundWalk.play();
+}
+
+function soundPlayDead() {
+    soundDead.play();
+}
+
+function soundPlayPush() {
+    soundPush.pause();
+    soundPush.currentTime = 0;
+    soundPush.play();
+}
+
+//Toplista
+var defaultToplist = [
+    {
+        name: "Bence",
+        points: 600
+    },
+    {
+        name: "Bence 2",
+        points: 500
+    }
+];
+
+var toplist = [
+];
+
+function toplistInit() {
+    toplistLoad();
+    toplistHide();
+    toplistRefresh();
+}
+
+function toplistRefresh() {
+    var table = document.getElementById("toplist_table");
+
+    //Táblázat ürítése
+    while (table.firstChild) {
+        table.removeChild(table.firstChild);
+    }
+
+    //Táblázat feltöltése
+    for (var i = 0; i < toplist.length; i++){
+        var top = toplist[i];
+
+        var tr = document.createElement("tr");
+        table.appendChild(tr);
+
+        var index = document.createElement("td");
+        index.innerHTML = "#" + (i + 1);
+        tr.appendChild(index);
+
+        var name = document.createElement("td");
+        name.innerHTML = top.name + " - " + top.points;
+        tr.appendChild(name);
+    }
+}
+
+function toplistHide() {
+    document.getElementById("toplist_container").style.display = "none";
+}
+
+function toplistShow() {
+    document.getElementById("toplist_container").style.display = "block";
+
+    if (gamePoints > toplist[toplist.length - 1].score || toplist.length < 5) {
+        toplistVisible(false, true);
+    } else {
+        toplistVisible(true, false);
+    }
+}
+
+function toplistVisible(noHigh, newHigh) {
+    document.getElementById("toplist_no_high").style.display = (noHigh ? "block" : "none");
+    document.getElementById("toplist_new_high").style.display = (newHigh ? "block" : "none");
+}
+
+function toplistSubmit() {
+    var name = document.getElementById("toplist_name");
+    if (name.value == "" || name.value.length == 0) {
+        name.focus();
+    } else {
+        toplistVisible(false, false);
+
+        toplist.push({
+            name: name.value,
+            points: gamePoints
+        });
+
+        toplist.sort(toplistCompare);
+
+        toplistSave();
+
+        toplistRefresh();
+    }
+}
+
+function toplistCompare(a, b) {
+    if (a.points < b.points){
+      return 1;
+    }
+
+    if (a.points > b.points){
+      return -1;
+    }
+
+    return 0;
+}
+
+function toplistGetCookie() {
+    var value = "; " + document.cookie;
+    var parts = value.split("; tl=");
+    if (parts.length == 2) return parts.pop().split(";").shift();
+  }
+
+function toplistSetCookie(name,value) {
+    document.cookie = name + "=" + (value || "") + "; path=/";
+}
+
+function toplistLoad() {
+    var ck = toplistGetCookie();
+    if (ck == undefined) {
+        toplist = defaultToplist;
+
+        toplistSave();
+    } else {
+        toplist = JSON.parse(ck);
+    }
+}
+
+function toplistSave() {
+    toplistSetCookie("tl", JSON.stringify(toplist));
 }

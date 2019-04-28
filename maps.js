@@ -36,7 +36,10 @@ var map0 = {
         y: 4
     },
     entities: [
-    ]
+    ],
+    score: {
+        time: 2
+    }
 };
 
 //1
@@ -62,7 +65,10 @@ var map1 = {
             y: 1,
             type: 0
         }
-    ]
+    ],
+    score: {
+        time: 2
+    }
 };
 
 //2
@@ -93,7 +99,10 @@ var map2 = {
             y: 3,
             type: 0
         },
-    ]
+    ],
+    score: {
+        time: 2
+    }
 };
 
 //3
@@ -123,7 +132,10 @@ var map3 = {
                 y: 0
             }
         }
-    ]
+    ],
+    score: {
+        time: 1
+    }
 };
 
 //4
@@ -187,7 +199,10 @@ var map4 = {
                 y: -1
             }
         }
-    ]
+    ],
+    score: {
+        time: 5
+    }
 };
 
 //5
@@ -255,7 +270,10 @@ var map5 = {
                 y: 0
             }
         },
-    ]
+    ],
+    score: {
+        time: 6
+    }
 };
 
 //6
@@ -293,7 +311,10 @@ var map6 = {
                 y: 0
             }
         },
-    ]
+    ],
+    score: {
+        time: 5
+    }
 };
 
 //Összes pálya

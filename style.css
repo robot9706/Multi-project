@@ -22,6 +22,7 @@ body {
 p {
     margin: 0;
     padding: 0;
+    color: white;
 }
 
 #page_container {
@@ -44,7 +45,10 @@ p {
 #text_container {
     display: flex;
     width: 100%;
-    color: white;
+}
+
+#text_center {
+    text-align: center;
 }
 
 .text_div {
@@ -53,4 +57,24 @@ p {
 
 #text_nextlvl {
     visibility: hidden;
+}
+
+#toplist_container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    background-color: #888888;
+    padding: 10px;
+    min-width: 400px;
+    text-align: center;
+}
+
+table {
+    margin: auto;
+}
+
+tr, td {
+    text-align: left;
 }
