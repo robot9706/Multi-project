@@ -7,6 +7,8 @@ function start() {
     canvas = document.getElementById('game_canvas');
     ctx = canvas.getContext('2d');
 
+    musicPlay();
+
     //Adatok feltöltése
     mapWidth = canvas.width / TILE_SIZE;
     mapHeight = canvas.height / TILE_SIZE;
@@ -41,6 +43,20 @@ function frame(t) {
     playerDraw(delta);
 }
 
+//Háttérzene
+function musicPlay() {
+    var mus = document.getElementById("music");
+    if (!mus.paused) {
+        return;
+    }
+    mus.volume = 0.05;
+    mus.loop = true;
+    mus.play()
+    .catch((res) => {
+        //DOMException?
+    });
+}
+
 //Bemenet kezelés
 var input = {
     up: false, //38
@@ -58,9 +74,15 @@ var inputMapping = {
 function inputInit() {
     document.addEventListener('keydown', inputKeyDown, false);
     document.addEventListener('keyup', inputKeyUp, false);
+
+    document.addEventListener('mousemove', musicPlay, false); //Zene csak felhasználói eseményre indulhat (Chrome?)
+    document.addEventListener('mouseenter', musicPlay, false);
+    document.addEventListener('mouseleave', musicPlay, false);
 }
 
 function inputKeyDown(e) {
+    musicPlay(); //Zene csak felhasználói eseményre indulhat (Chrome?)
+
     var name = inputMapping[e.keyCode];
 
     //Ha nincs neve a gombnak akkor külön kell kezelni
@@ -84,6 +106,8 @@ function inputKeyDown(e) {
 }
 
 function inputKeyUp(e) {
+    musicPlay(); //Zene csak felhasználói eseményre indulhat (Chrome?)
+
     var name = inputMapping[e.keyCode];
 
     if (name == undefined) {
@@ -97,7 +121,7 @@ function inputKeyUp(e) {
 var gamePoints = 0;
 var gamePointsAdd = 0;
 
-var levelIndex = 6;
+var levelIndex = 0;
 
 var levelDoTime = false;
 var levelTime = 0;
