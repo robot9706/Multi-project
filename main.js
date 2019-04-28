@@ -728,7 +728,7 @@ function toplistShow() {
     document.getElementById("toplist_score").innerHTML = gamePoints;
     document.getElementById("toplist_score_new").innerHTML = gamePoints;
 
-    if (gamePoints > toplist[toplist.length - 1].score) {
+    if (gamePoints > toplist[toplist.length - 1].points) {
         toplistVisible(false, true);
     } else {
         toplistVisible(true, false);
